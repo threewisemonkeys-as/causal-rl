@@ -186,16 +186,16 @@ class VPG:
                 )
 
                 # Log rewards and losses
-                metrics["avg_episode_reward"] = np.mean(
+                metrics["rewards/avg_episode_reward"] = np.mean(
                     epoch_rewards[-episodes_per_epoch:]
                 )
-                rewards.append(metrics["avg_episode_reward"])
+                rewards.append(metrics["rewards/avg_episode_reward"])
                 if writer is not None:
                     for key, val in metrics.items():
                         writer.add_scalar(key, val, epoch)
 
                 if VERBOSE and (epoch == 0 or ((epoch + 1) % (epochs / 10)) == 0):
-                    r = metrics["avg_episode_reward"]
+                    r = metrics["rewards/avg_episode_reward"]
                     p_loss = metrics["loss/policy_loss"]
                     v_loss = metrics["loss/value_loss"]
                     print(
