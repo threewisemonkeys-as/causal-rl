@@ -66,7 +66,7 @@ class PPO:
             .to(dtype)
         )
 
-    def _update(self, batch, hp, policy_optim, value_optim):
+    def _update(self, batch, hp, policy_optim, value_optim, epoch, writer):
         # process batch
         obs = [torch.stack(traj.obs)[:-1] for traj in batch]
         disc_r = [traj.disc_r(hp["gamma"], normalize=True) for traj in batch]
@@ -193,19 +193,21 @@ class PPO:
                     batch.append(traj)
 
                 # Update value and policy
-                metrics = self._update(batch, hp, policy_optim, value_optim)
+                metrics = self._update(
+                    batch, hp, policy_optim, value_optim, epoch, writer
+                )
 
                 # Log rewards and losses
-                metrics["avg_episode_reward"] = np.mean(
+                metrics["rewards/avg_episode_reward"] = np.mean(
                     epoch_rewards[-episodes_per_epoch:]
                 )
-                rewards.append(metrics["avg_episode_reward"])
+                rewards.append(metrics["rewards/avg_episode_reward"])
                 if writer is not None:
                     for key, val in metrics.items():
                         writer.add_scalar(key, val, epoch)
 
                 if VERBOSE and (epoch == 0 or ((epoch + 1) % (epochs / 10)) == 0):
-                    r = metrics["avg_episode_reward"]
+                    r = metrics["rewards/avg_episode_reward"]
                     p_loss = metrics["loss/policy_loss"]
                     v_loss = metrics["loss/value_loss"]
                     print(
@@ -237,7 +239,8 @@ class PPO:
     def act(self, obs):
         self.policy.eval()
         with torch.no_grad():
-            obs = torch.tensor(obs).to(device).to(dtype)
+            if type(obs) != torch.Tensor:
+                obs = torch.tensor(obs).to(device).to(dtype)
             a_logits = self.policy(obs)
         return torch.argmax(a_logits).item()
 

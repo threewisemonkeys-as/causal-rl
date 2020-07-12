@@ -13,8 +13,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dtype = torch.double
 
 # Hyperparameters
-EPOCHS = 10
-EPISODES_PER_EPOCH = 4
+EPOCHS = 20
+EPISODES_PER_EPOCH = 8
 POLICY_HIDDEN_LAYERS = 64
 VALUE_HIDDEN_LAYERS = 64
 N_POLICY_UPDATES = 16
@@ -32,7 +32,7 @@ class CausalPPO(PPO):
         super(CausalPPO, self).__init__(*args, **kwargs)
         self._compute_causal_factor = compute_causal_factor_fn
 
-    def _update(self, batch, hp, policy_optim, value_optim):
+    def _update(self, batch, hp, policy_optim, value_optim, epoch, writer):
         # process batch
         obs = [torch.stack(traj.obs)[:-1] for traj in batch]
         disc_r = [traj.disc_r(hp["gamma"], normalize=True) for traj in batch]
@@ -51,6 +51,10 @@ class CausalPPO(PPO):
                 c.append(causal_factor)
                 c_info.append(causal_info)
                 adv[i] *= causal_factor
+                for j, cf in enumerate(causal_factor):
+                    writer.add_scalar(f"causal_factor/E{epoch+1}T{i+1}", cf, j)
+            for j, cf in enumerate(torch.stack(c, dim=0).mean(dim=0)):
+                writer.add_scalar(f"causality/E{epoch+1}", cf, j)
 
         # update policy
         for j in range(hp["n_policy_updates"]):
@@ -81,8 +85,10 @@ class CausalPPO(PPO):
             value_loss.backward()
             value_optim.step()
 
-        return {
+        metrics = {
             "loss/policy_loss": policy_loss.item(),
             "loss/value_loss": value_loss.item(),
             "causality/mean_causal_factor": torch.mean(causal_factor),
         }
+
+        return metrics
