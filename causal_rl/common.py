@@ -100,6 +100,7 @@ def sample_traj(agent, env, max_timesteps):
 def plot_agent_behaviors(
     agents, env, state_names, max_timesteps, save_path=None, show_plot=False
 ):
+    print("Plotting behavior")
     fig, axes = plt.subplots(5, 2, sharex=True, figsize=[7, 8])
     axes = axes.flatten()
 
@@ -123,8 +124,8 @@ def plot_agent_behaviors(
         axes[-2].plot(reward, label=name)
         axes[-2].set_title("reward")
 
-    handles, labels = axes[-1].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='lower right')
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower right")
     fig.tight_layout(pad=0.3)
     if save_path is not None:
         plt.savefig(save_path)

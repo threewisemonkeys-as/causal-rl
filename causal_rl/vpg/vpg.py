@@ -181,7 +181,9 @@ class VPG:
                     batch.append(traj)
 
                 # Update value and policy
-                metrics = self._update(batch, hp, policy_optim, value_optim, epoch, writer)
+                metrics = self._update(
+                    batch, hp, policy_optim, value_optim, epoch, writer
+                )
 
                 # Log rewards and losses
                 metrics["avg_episode_reward"] = np.mean(
