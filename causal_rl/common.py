@@ -97,7 +97,9 @@ def sample_traj(agent, env, max_timesteps):
     return traj
 
 
-def plot_agent_behaviors(agents, env, state_names, max_timesteps, save_path=None):
+def plot_agent_behaviors(
+    agents, env, state_names, max_timesteps, save_path=None, show_plot=False
+):
     fig, axes = plt.subplots(5, 2, sharex=True, figsize=[7, 8])
     axes = axes.flatten()
 
@@ -112,18 +114,40 @@ def plot_agent_behaviors(agents, env, state_names, max_timesteps, save_path=None
         action = torch.stack(traj.a, dim=0)
         epsilon_1 = ((action == 2) | (action == 3)).to(float) * 0.7
         epsilon_2 = ((action == 1) | (action == 3)).to(float) * 0.3
-        axes[-3].plot(epsilon_1, label=name)
-        axes[-3].set_title("Treatment epsilon_1")
-        axes[-2].plot(epsilon_2, label=name)
-        axes[-2].set_title("Treatment epsilon_2")
+        axes[-4].plot(epsilon_1, label=name)
+        axes[-4].set_title("Treatment epsilon_1")
+        axes[-3].plot(epsilon_2, label=name)
+        axes[-3].set_title("Treatment epsilon_2")
 
         reward = torch.stack(traj.r, dim=0)
-        axes[-1].plot(reward, label=name)
-        axes[-1].set_title("reward")
+        axes[-2].plot(reward, label=name)
+        axes[-2].set_title("reward")
 
-    for ax in axes:
-        ax.legend()
+    handles, labels = axes[-1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower right')
     fig.tight_layout(pad=0.3)
     if save_path is not None:
         plt.savefig(save_path)
-    plt.show()
+    if show_plot:
+        plt.show()
+
+
+class NoTreatmentPolicy:
+    """The policy of always no treatment."""
+
+    def act(self, obs):
+        return 0
+
+
+class MaxTreatmentPolicy:
+    """The policy of always applying both RT inhibitor and protease inhibitor."""
+
+    def act(self, obs):
+        return 3
+
+
+class RandomPolicy:
+    """The policy of picking a random action at each time step."""
+
+    def act(self, obs):
+        return np.random.randint(4)

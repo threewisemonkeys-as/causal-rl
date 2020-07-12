@@ -67,7 +67,7 @@ class VPG:
             .to(dtype)
         )
 
-    def _update(self, batch, hp, policy_optim, value_optim):
+    def _update(self, batch, hp, policy_optim, value_optim, epoch, writer):
         # process batch
         obs = [torch.stack(traj.obs)[:-1] for traj in batch]
         disc_r = [traj.disc_r(hp["gamma"], normalize=True) for traj in batch]
@@ -116,12 +116,13 @@ class VPG:
         PLOT_REWARDS=True,
         VERBOSE=False,
         TENSORBOARD_LOG=True,
+        SHOW_PLOTS=False,
     ):
         """ Trains both policy and value networks """
         hp = locals()
         start_time = datetime.datetime.now()
         print(
-            f"Start time: {start_time:%d-%m-%Y %H:%M:%S}"
+            f"\nStart time: {start_time:%d-%m-%Y %H:%M:%S}"
             f"\nTraining model on {self.env_name} | "
             f"Observation Space: {self.env.observation_space} | "
             f"Action Space: {self.env.action_space}\n"
@@ -180,7 +181,7 @@ class VPG:
                     batch.append(traj)
 
                 # Update value and policy
-                metrics = self._update(batch, hp, policy_optim, value_optim)
+                metrics = self._update(batch, hp, policy_optim, value_optim, epoch, writer)
 
                 # Log rewards and losses
                 metrics["avg_episode_reward"] = np.mean(
@@ -219,11 +220,14 @@ class VPG:
                         f"{self.__class__.__name__}_{self.env_name}_reward_plot.png"
                     )
                 )
+                if SHOW_PLOTS:
+                    plt.show()
 
     def act(self, obs):
         self.policy.eval()
         with torch.no_grad():
-            obs = torch.tensor(obs).to(device).to(dtype)
+            if type(obs) != torch.Tensor:
+                obs = torch.tensor(obs).to(device).to(dtype)
             logits = self.policy(obs)
         return torch.distributions.Categorical(logits=logits).sample().item()
 
@@ -238,7 +242,7 @@ class VPG:
             },
             path,
         )
-        print(f"\nSaved model parameters to {path}")
+        print(f"Saved model parameters to {path}")
 
     def load(self, path=None):
         """ Load model parameters """
@@ -247,7 +251,7 @@ class VPG:
         checkpoint = torch.load(path)
         self.policy.load_state_dict(checkpoint["policy_state_dict"])
         self.value.load_state_dict(checkpoint["value_state_dict"])
-        print(f"\nLoaded model parameters from {path}")
+        print(f"Loaded model parameters from {path}")
 
     def eval(self, episodes, render=False):
         """ Evaluates model performance """

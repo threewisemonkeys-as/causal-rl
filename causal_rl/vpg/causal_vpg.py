@@ -31,7 +31,7 @@ class CausalPG(VPG):
         super(CausalPG, self).__init__(*args, **kwargs)
         self._compute_causal_factor = compute_causal_factor_fn
 
-    def _update(self, batch, hp, policy_optim, value_optim):
+    def _update(self, batch, hp, policy_optim, value_optim, epoch, writer):
         # process batch
         obs = [torch.stack(traj.obs)[:-1] for traj in batch]
         disc_r = [traj.disc_r(hp["gamma"], normalize=True) for traj in batch]
@@ -46,6 +46,10 @@ class CausalPG(VPG):
                 c.append(causal_factor)
                 c_info.append(causal_info)
                 adv[i] *= causal_factor
+                for j, cf in enumerate(causal_factor):
+                    writer.add_scalar(f"causal_factor/E{epoch+1}T{i+1}", cf, j)
+            for j, cf in enumerate(torch.stack(c, dim=0).mean(dim=0)):
+                writer.add_scalar(f"causality/E{epoch+1}", cf, j)
 
         # update policy
         policy_loss = torch.zeros(1, device=device, dtype=dtype, requires_grad=True)
